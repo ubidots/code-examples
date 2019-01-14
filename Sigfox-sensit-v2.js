@@ -1,305 +1,224 @@
-/* Introduction here
-.
-.
-.
-.
+/*
+ * This code receives and decodes data coming from a callback in the Sigfox Backend,
+ * where the data is an "uplink only frame" provided by a Sens'it device v2.1, working
+ * on "Temperature & Humidity" or "Light" mode. With the data properly decoded, an HTTP
+ * POST request is sent to Ubidots API, containing the data.
+ *
+ * IMPORTANT NOTE: This code was designed to run into UbiFunctions add-on from Ubidots.
+ *
+ * To use this code properly, please refer to this official Ubidots guide:
+ * >>>>>>>>>>>>> GUIDE LINK <<<<<<<<<<<<<<<<<<<
  */
-//---------------------------------------------------------------------
 
-// Global variables declaration ---------------------------------------
+// Global variables ---------------------------------------------------
 const request = require('request-promise');
 //---------------------------------------------------------------------
 
 //---------------------------------------------------------------------
-// Functions for decoding variables information for each mode
+// Functions for variables extraction
 
 // Returns the arguments to be decoded according the mode
-function modeDecoding(varValues, mode) {
-  console.log('Mode decoding function ---------');
+function modeDecoding(varsToExtract, mode) {
+  const modeVars = MODE_FUNCTIONS[mode].vars; // Variables according the mode
+  const argum = []; // Arguments to be sent
   let i;
   let varLabel;
-  const varMode = MODE_FUNCTIONS[mode].vars; // Variables according the mode
-  const argum = []; // Arguments to be sended to "mode" function
 
-  console.log(varMode);
-  console.log(varMode.length);
-
-  for (i = 0; i < varMode.length; i += 1) {
-    varLabel = varMode[i];
-    argum[i] = varValues[varLabel];
+  for (i = 0; i < modeVars.length; i += 1) {
+    varLabel = modeVars[i];
+    argum[i] = varsToExtract[varLabel];
   }
 
-  console.log(argum);
-  console.log('End mode decoding function ---------');
   return (argum);
 }
-//---------------------------------------------------------------------
+//-------------------------------------------------------
 
-// Battery voltaje ----------------------------------------------------
-function battery (batteryMsb, batteryLsb) {
-  let batteryLevel = `${batteryMsb}${batteryLsb}`;
-  batteryLevel = parseInt(batteryLevel, 2);
-  batteryLevel = (batteryLevel * 0.05) + 2.7; // Volts
-  return (batteryLevel);
-}
-//---------------------------------------------------------------------
-
-// Byte 1 - variables extraction --------------------------------------
+// Byte 1 - variables extraction ------------------------
 // This byte is the same for all the modes
 function byte1VE(byte1) {
-  console.log('Byte 1 VE ------------');
-
   const batteryMsb = byte1[0];
   const frameType = byte1.slice(1, 3);
   const uplinkPeriod = byte1.slice(3, 5);
   const mode = byte1.slice(5, 8);
   return [batteryMsb, frameType, uplinkPeriod, mode];
 }
-//---------------------------------------------------------------------
+//-------------------------------------------------------
 
-// Byte 2 - variables extraction --------------------------------------
+// Byte 2 - variables extraction ------------------------
 // This byte is the same for all the modes
 function byte2VE(byte2) {
-  console.log('Byte 2 VE ------------');
   const temperatureMsb = byte2.slice(0, 4);
   const batteryLsb = byte2.slice(4, 8);
   return [temperatureMsb, batteryLsb];
 }
-//---------------------------------------------------------------------
+//-------------------------------------------------------
 
-// Byte 3 - variables extraction --------------------------------------
+// Byte 3 - variables extraction ------------------------
 
 // This byte depends on the mode
 function byte3VE(byte3, mode) {
-  console.log('Byte 3 VE ------------');
   return BYTE3_FUNCTIONS[mode](byte3);
 }
 
-// Byte 3: Case for Temperature & Humidity, Magnet, Vibration or Button mode
+// Byte 3: Case for Temperature & Humidity mode
 function byte3Case1(byte3) {
-  console.log('Byte 3: Case for Temperature & Humidity, Magnet, Vibration or Button mode');
-  const magnetState = byte3[1];
   const temperatureLsb = byte3.slice(2, 8);
-  return { magnetState, temperatureLsb };
+  return { temperatureLsb };
 }
 
 // Byte 3: Case for Light mode
 function byte3Case2(byte3) {
-  console.log('Byte 3: Case for Light mode');
   const lightMask = byte3.slice(0, 2);
   const lightValue = byte3.slice(2, 8);
   return { lightMask, lightValue };
 }
+//-------------------------------------------------------
 
-// Byte 3: Case for Door Opener mode
-function byte3Case3(byte3) {
-  console.log('Byte 3: Case for Door Opener mode');
-  const maxMagnet = byte3;
-  return { maxMagnet };
-}
-//---------------------------------------------------------------------
-
-// Byte 4 - variables extraction --------------------------------------
+// Byte 4 - variables extraction ------------------------
 
 // This byte depends on the mode
 function byte4VE(byte4, mode) {
-  console.log('Byte 4 VE ------------');
   return BYTE4_FUNCTIONS[mode](byte4);
 }
 
-// Byte 4: Case for Temperature mode
+// Byte 4: Case for Temperature & Humidity mode
 function byte4Case1(byte4) {
-  console.log('Byte 4: Case for Temperature mode');
   const humidity = byte4;
   return { humidity };
 }
 
-// Byte 4: Case for Magnet, Door opener, Light and Vibration mode
+// Byte 4: Case for Light mode
 function byte4Case2(byte4) {
-  console.log('Byte 4: Case for Magnet, Door opener, Light and Vibration mode');
   const alertCounter = byte4; // Number of events that happened
   return { alertCounter };
 }
-
-// Byte 4: Case for Button mode
-function byte4Case3(byte4) {
-  console.log('Byte 4: Case for Button mode');
-  const firmwareVMajor = byte4.slice(0, 4);
-  const firmwareVMinor = byte4.slice(4, 8);
-  return { firmwareVMajor, firmwareVMinor };
-}
 //---------------------------------------------------------------------
 
-// Variable decoding functions for each mode --------------------------
+//---------------------------------------------------------------------
+// Functions to get variables' final values
 
-// Only the temperature mode was implemented because missing information
-// about other modes.
+// Battery voltage --------------------------------------
+function batteryVoltage(batteryMsb, batteryLsb) {
+  let batteryLevel = `${batteryMsb}${batteryLsb}`;
+  batteryLevel = parseInt(batteryLevel, 2);
+  batteryLevel = (batteryLevel * 0.05) + 2.7; // Volts
+  return (batteryLevel);
+}
+//-------------------------------------------------------
 
-// Button mode - data decoding
-
-/*
-function mode_button (varValues)
-{
-    var firmwareVMajor = varValues[13];
-    var firmwareVMinor = varValues[14];
-} */
-
-// Temperature mode - data decoding
-function modeTemperature(varValues) {
-  console.log('Decoding temperature ----------------------');
-
+// Temperature & Humidity mode - data decoding ----------
+function modeTemperature(varsToExtract) {
   // Expected input: [temperatureMsb, temperatureLsb, humidity]
-  let fTemperature;
-  let fHumidity; // Final variables
+  const temperatureMsb = varsToExtract[0];
+  const temperatureLsb = varsToExtract[1];
+  const humidity = varsToExtract[2];
+  let fTemperature; // Final temperature value
+  let fHumidity; // Final humidity value
 
-  const temperatureMsb = varValues[0];
-  const temperatureLsb = varValues[1];
-  const humidity = varValues[2];
-
-  /*
-    console.log ("temperatureMsb: ", temperatureMsb);
-    console.log ("temperatureLsb: ", temperatureLsb);
-    console.log ("humidity: ", humidity);
-    */
-
-  fTemperature = `${temperatureMsb}${temperatureLsb}`;
-  console.log(fTemperature);
+  fTemperature = `${temperatureMsb}${temperatureLsb}`; // 10 bits
   fTemperature = parseInt(fTemperature, 2);
-  console.log(fTemperature);
   fTemperature = ((fTemperature - 200) / 8); // °C
-  console.log(fTemperature);
 
-  console.log('Decoding humidity -----------');
-  console.log(humidity);
   fHumidity = parseInt(humidity, 2);
-  console.log(fHumidity);
-  fHumidity /= 2; // Percentage
-  console.log(fHumidity);
+  fHumidity /= 2; // %
 
-  const decodeOutput = {
+  const decodedOutput = {
     temperature: fTemperature,
     humidity: fHumidity,
   };
+  return (decodedOutput);
+}
+//-------------------------------------------------------
 
-  console.log('End decoding temperature -------------------');
-  return (decodeOutput);
+// Light mode - data decoding ---------------------------
+function modeLight(varsToExtract) {
+  // Expected input: ['lightMask', 'lightValue', 'alertCounter']
+  const lightMask = varsToExtract[0];
+  const lightValue = varsToExtract[1];
+  const fLightValue = LIGHT_VALUE[lightMask](lightValue);
+  const decodedOutput = { light: fLightValue };
+  return decodedOutput;
 }
 
-// Light mode - data decoding
-/*
-function mode_light (varValues)
-{
-    lightMask = varValues[8];
-    f_light_value = varValues[9];
+function lightCase0(lightValue) {
+  const light = parseInt(lightValue, 2);
+  const fLightValue = light / 96; // lux
+  return fLightValue;
+}
 
-    console.log(lightMask);
-    console.log(f_light_value);
+function lightCase1(lightValue) {
+  const light = parseInt(lightValue, 2);
+  const fLightValue = (light * 8) / 96; // lux
+  return fLightValue;
+}
 
-    switch (lightMask)
-    {
-        case "00":
-        {
-            lightValue
-        }
-    }
+function lightCase2(lightValue) {
+  const light = parseInt(lightValue, 2);
+  const fLightValue = (light * 64) / 96; // lux
+  return fLightValue;
+}
 
-
-} */
-
-// Door opener mode - data decoding
-/*
-function mode_light (varValues)
-{
-
-} */
-
-// Vibration mode - data decoding
-/*
-function mode_light (varValues)
-{
-
-} */
-
-// Magnet mode - data decoding
-/*
-function mode_light(varValues) {
-
-} */
+function lightCase3(lightValue) {
+  const light = parseInt(lightValue, 2);
+  const fLightValue = (light * 1024) / 96; // lux
+  return fLightValue;
+}
 //---------------------------------------------------------------------
 
 //---------------------------------------------------------------------
-// This function Parse & Decode the incoming by the Sigfox backend
+// Function to parse & decode the incoming data
 function payloadDecode(data) {
-  // Variables declaration ----------------------
-
   const buf = Buffer.from(data, 'hex'); // Buffer for data in hexa
 
-  //---------------------------------------------
-  console.log('Received data: ', buf);
-
-  // Bytes extraction ensuring 8 bits -----------
+  // Bytes extraction ensuring 8 bits ---------------------
   const byte1 = (buf[0].toString(2)).padStart(8, '0');
   const byte2 = (buf[1].toString(2)).padStart(8, '0');
   const byte3 = (buf[2].toString(2)).padStart(8, '0');
   const byte4 = (buf[3].toString(2)).padStart(8, '0');
-  //---------------------------------------------
+  //-------------------------------------------------------
 
-  // Variables extraction (ve) for each byte ----
-  // Byte 1
-  const [batteryMsb, frameType, uplinkPeriod, mode] = byte1VE(byte1);
-  // Byte 2
-  const [temperatureMsb, batteryLsb] = byte2VE(byte2);
-  // Byte 3
+  // Variables extraction (VE) for each byte --------------
+  const [batteryMsb, frameType, uplinkPeriod, mode] = byte1VE(byte1); // Byte 1
+  const [temperatureMsb, batteryLsb] = byte2VE(byte2); // Byte 2
   const {
-    magnetState,
     temperatureLsb,
     lightMask,
     lightValue,
-    maxMagnet,
-  } = byte3VE(byte3, mode);
-
-  // Byte 4
+  } = byte3VE(byte3, mode); // Byte 3
   const {
     humidity,
     alertCounter,
-    firmwareVMajor,
-    firmwareVMinor,
-  } = byte4VE(byte4, mode);
-  //---------------------------------------------
+  } = byte4VE(byte4, mode); // Byte 4
+  //-------------------------------------------------------
 
-  // Total = 15 variables
-  const varValues = {
+  // All variables possibilities
+  const varsToExtract = {
     mode, // General variable
     frameType, // General variable
     uplinkPeriod, // General variable
     batteryMsb, // General variable
     batteryLsb, // General variable
-    temperatureMsb, // Temperature mode variable
-    temperatureLsb, // Temperature mode variable
-    humidity, // Temperature mode variable
+    temperatureMsb, // Temperature & Huidity mode variable
+    temperatureLsb, // Temperature & Huidity mode variable
+    humidity, // Temperature & Huidity mode variable
     lightMask, // Light mode variable
     lightValue, // Light mode variable
-    magnetState, // Magnet mode variable
-    maxMagnet, // Door opener mode variable
-    alertCounter, // All modes except button and temperature
-    firmwareVMajor, // Button mode
-    firmwareVMinor, // Button mode
+    alertCounter, // Light mode variable
   };
 
-  // Information decoding -----------------------
-  const argum = modeDecoding(varValues, mode);
+  // Get variables values ---------------------------------
+  const argum = modeDecoding(varsToExtract, mode);
   const decodeOutput = MODE_FUNCTIONS[mode].fnc(argum);
-  //---------------------------------------------
-  console.log('Regresando a payloadDecode ---------');
-  console.log(decodeOutput);
-  // console.log(argum);
+  const battery = batteryVoltage(batteryMsb, batteryLsb);
+  //-------------------------------------------------------
 
+  decodeOutput.battery = battery; // Add battery value
   return (decodeOutput);
 }
 //---------------------------------------------------------------------
 
 //---------------------------------------------------------------------
-// This function builds an HTTP POST request to Ubidots
+// Function to build an HTTP POST request to Ubidots
 async function ubidotsRequest(token, label, payload) {
   const options = {
     method: 'POST',
@@ -316,41 +235,35 @@ async function ubidotsRequest(token, label, payload) {
 //---------------------------------------------------------------------
 
 //---------------------------------------------------------------------
-// Miscellaneous for byte 3 variables extraction
+// Miscellaneous
 /* eslint-disable quote-props */
+// Byte 3 variables extraction
 const BYTE3_FUNCTIONS = {
-  '001': byte3Case1,
-  '101': byte3Case1,
-  '100': byte3Case1,
-  '000': byte3Case1,
-  '010': byte3Case2,
-  '011': byte3Case3,
+  '001': byte3Case1, // Temperature & Humidity mode
+  '010': byte3Case2, // Light mode
 };
-// Miscellaneous for byte 4 variables extraction
+// Byte 4 variables extraction
 const BYTE4_FUNCTIONS = {
-  '001': byte4Case1,
-  '101': byte4Case2,
-  '011': byte4Case2,
-  '010': byte4Case2,
-  '100': byte4Case2,
-  '000': byte4Case3,
+  '001': byte4Case1, // Temperature & Humidity mode
+  '010': byte4Case2, // Light mode
 };
-// Miscellaneous for decoding on each mode
+// Decoding on each mode
 const MODE_FUNCTIONS = {
-  // "000": {"fnc": mode_button, "vars": variables},
   '001': { 'fnc': modeTemperature, 'vars': ['temperatureMsb', 'temperatureLsb', 'humidity'] },
-  // "010": {"fnc": mode_light, "vars": variables},
-  // "011": {"fnc": mode_door_opened, "vars": variables},
-  // "100": {"fnc": mode_vibration, "vars": variables},
-  // "101": {"fnc": mode_magnet, "vars": variables},
+  '010': { 'fnc': modeLight, 'vars': ['lightMask', 'lightValue', 'alertCounter'] },
+};
+// Get light value
+const LIGHT_VALUE = {
+  '00': lightCase0,
+  '01': lightCase1,
+  '10': lightCase2,
+  '11': lightCase3,
 };
 //---------------------------------------------------------------------
 
-// Main function ------------------------------------------------------
+//---------------------------------------------------------------------
+// Main function
 async function main(args) {
-  console.log('Original args: ---------------');
-  console.log(args);
-
   const {
     token,
     device,
@@ -358,13 +271,8 @@ async function main(args) {
     time,
   } = args;
 
-  console.log('Data:', args.data);
-
-  // Decode & Parse the incoming data to build the payload based on the device mode
+  // Decode & parse the incoming data
   const decoded = await payloadDecode(data);
-
-  console.log('Decoded data: ----------------');
-  console.log(decoded); // ---- Shows the decoded data
 
   // Send the payload to Ubidots
   const response = await ubidotsRequest(token, device, decoded);
