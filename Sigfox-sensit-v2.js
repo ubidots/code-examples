@@ -8,7 +8,6 @@
  *
  * To use this code properly, please refer to the Ubidots integration guide "Connect a
  * Sens'it to Ubidots using Sigfox over HTTP".
- * >>>>>>>>>>> GUIDE LINK HERE WHEN AVAILABLE <<<<<<<<<<<
  *
  * This guide can be found in the Ubidots Help Center:
  * https://help.ubidots.com/
