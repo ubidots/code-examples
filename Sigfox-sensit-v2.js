@@ -6,8 +6,34 @@
  *
  * IMPORTANT NOTE: This code was designed to run into UbiFunctions add-on from Ubidots.
  *
- * To use this code properly, please refer to this official Ubidots guide:
- * >>>>>>>>>>>>> GUIDE LINK <<<<<<<<<<<<<<<<<<<
+ * To use this code properly, please refer to the Ubidots integration guide "Connect a
+ * Sens'it to Ubidots using Sigfox over HTTP".
+ * >>>>>>>>>>> GUIDE LINK HERE WHEN AVAILABLE <<<<<<<<<<<
+ *
+ * This guide can be found in the Ubidots Help Center:
+ * https://help.ubidots.com/
+ *
+ *
+ * Copyright (c) 2013-2019 Ubidots.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
 // Global variables ---------------------------------------------------
@@ -15,26 +41,15 @@ const request = require('request-promise');
 //---------------------------------------------------------------------
 
 //---------------------------------------------------------------------
-// Functions for variables extraction
+// Functions to extract the variables of each byte according to the mode
 
-// Returns the arguments to be decoded according the mode
-function modeDecoding(varsToExtract, mode) {
-  const modeVars = MODE_FUNCTIONS[mode].vars; // Variables according the mode
-  const argum = []; // Arguments to be sent
-  let i;
-  let varLabel;
-
-  for (i = 0; i < modeVars.length; i += 1) {
-    varLabel = modeVars[i];
-    argum[i] = varsToExtract[varLabel];
-  }
-
-  return (argum);
-}
-//-------------------------------------------------------
-
-// Byte 1 - variables extraction ------------------------
-// This byte is the same for all the modes
+// Byte 1 -----------------------------------------------
+/**
+ * This function extracts the variables from byte 1.
+ * Does not depend on the mode.
+ * @param {String} byte1 Byte 1 from variable "data" (8 bits)
+ * @returns {Array} Variables from byte 1 (in bits)
+ */
 function byte1VE(byte1) {
   const batteryMsb = byte1[0];
   const frameType = byte1.slice(1, 3);
@@ -44,8 +59,13 @@ function byte1VE(byte1) {
 }
 //-------------------------------------------------------
 
-// Byte 2 - variables extraction ------------------------
-// This byte is the same for all the modes
+// Byte 2 -----------------------------------------------
+/**
+ * This function extracts the variables from byte 2.
+ * Does not depend on the mode.
+ * @param {String} byte2 Byte 2 from variable "data" (8 bits)
+ * @returns {Array} Variables from byte 2 (in bits)
+ */
 function byte2VE(byte2) {
   const temperatureMsb = byte2.slice(0, 4);
   const batteryLsb = byte2.slice(4, 8);
@@ -53,9 +73,16 @@ function byte2VE(byte2) {
 }
 //-------------------------------------------------------
 
-// Byte 3 - variables extraction ------------------------
-
-// This byte depends on the mode
+// Byte 3 -----------------------------------------------
+/**
+ * This function extracts the variables from byte 3.
+ * Does depend on the mode.
+ * If mode = "001", it calls byte3Case1 function.
+ * If mode = "010", it calls byte3Case2 function.
+ * @param {String} byte3 Byte 3 from variable "data" (8 bits)
+ * @param {String} mode Working mode of sens'it device
+ * @returns {String} Function to be called
+ */
 function byte3VE(byte3, mode) {
   return BYTE3_FUNCTIONS[mode](byte3);
 }
@@ -74,9 +101,16 @@ function byte3Case2(byte3) {
 }
 //-------------------------------------------------------
 
-// Byte 4 - variables extraction ------------------------
-
-// This byte depends on the mode
+// Byte 4 -----------------------------------------------
+/**
+ * This function extracts the variables from byte 4.
+ * Does depend on the mode.
+ * If mode = "001", it calls byte4Case1 function.
+ * If mode = "010", it calls byte4Case2 function.
+ * @param {String} byte4 Byte 4 from variable "data" (8 bits)
+ * @param {String} mode Working mode of sens'it device
+ * @returns {String} Function to be called
+ */
 function byte4VE(byte4, mode) {
   return BYTE4_FUNCTIONS[mode](byte4);
 }
@@ -95,9 +129,38 @@ function byte4Case2(byte4) {
 //---------------------------------------------------------------------
 
 //---------------------------------------------------------------------
+/**
+* This function returns the arguments to be decoded according to the mode
+* @param {String} varsToExtract Contains all the possible variables.
+* @param {String} mode Working mode of the sens'it device.
+* @returns {Array} Variables to be extracted according to the mode.
+*/
+function modeDecoding(varsToExtract, mode) {
+  const modeVars = MODE_FUNCTIONS[mode].vars; // Variables according to the mode
+  const argum = []; // Arguments to be sent
+  let i;
+  let varLabel;
+
+  for (i = 0; i < modeVars.length; i += 1) {
+    varLabel = modeVars[i];
+    argum[i] = varsToExtract[varLabel];
+  }
+
+  return (argum);
+}
+//---------------------------------------------------------------------
+
+//---------------------------------------------------------------------
 // Functions to get variables' final values
 
 // Battery voltage --------------------------------------
+/**
+ * This function receives the battery variables in bits
+ * and obtains the battery value in Volts.
+ * @param {String} batteryMsb Most Significant Bits
+ * @param {String} batteryLsb Less Significant Bits
+ * @returns {Number} Battery value in Volts
+ */
 function batteryVoltage(batteryMsb, batteryLsb) {
   let batteryLevel = `${batteryMsb}${batteryLsb}`;
   batteryLevel = parseInt(batteryLevel, 2);
@@ -107,8 +170,14 @@ function batteryVoltage(batteryMsb, batteryLsb) {
 //-------------------------------------------------------
 
 // Temperature & Humidity mode - data decoding ----------
+/**
+ * This function receives the Temperature and Humidity
+ * variables in bits and obtains the Temperature and
+ * Humidity value.
+ * @param {Array} varsToExtract Expected input: [temperatureMsb, temperatureLsb, humidity]
+ * @returns {Object} Temperature and Humidity values
+ */
 function modeTemperature(varsToExtract) {
-  // Expected input: [temperatureMsb, temperatureLsb, humidity]
   const temperatureMsb = varsToExtract[0];
   const temperatureLsb = varsToExtract[1];
   const humidity = varsToExtract[2];
@@ -131,8 +200,22 @@ function modeTemperature(varsToExtract) {
 //-------------------------------------------------------
 
 // Light mode - data decoding ---------------------------
+/**
+ * This function receives the Light variables in bits and
+ * obtains the Light value.
+ * If lightMask = "00", it calls lightCase0 function.
+ * If lightMask = "01", it calls lightCase1 function.
+ * If lightMask = "10", it calls lightCase2 function.
+ * If lightMask = "11", it calls lightCase3 function.
+ *
+ * Please remember that the used formulas have been taken
+ * from the Sens'it documentation:
+ * https://build.sigfox.com/sensit-for-developers
+ *
+ * @param {Array} varsToExtract Expected input: ['lightMask', 'lightValue', 'alertCounter']
+ * @returns {Object} Light value
+ */
 function modeLight(varsToExtract) {
-  // Expected input: ['lightMask', 'lightValue', 'alertCounter']
   const lightMask = varsToExtract[0];
   const lightValue = varsToExtract[1];
   const fLightValue = LIGHT_VALUE[lightMask](lightValue);
@@ -166,7 +249,11 @@ function lightCase3(lightValue) {
 //---------------------------------------------------------------------
 
 //---------------------------------------------------------------------
-// Function to parse & decode the incoming data
+/**
+ * This function parse and decode the data coming from the Sigfox Backend.
+ * @param {Object} data "Data" property of "args" object. Args are the incoming data.
+ * @returns {Object} Decoded data to be sent to Ubidots API.
+ */
 function payloadDecode(data) {
   const buf = Buffer.from(data, 'hex'); // Buffer for data in hexa
 
@@ -198,9 +285,9 @@ function payloadDecode(data) {
     uplinkPeriod, // General variable
     batteryMsb, // General variable
     batteryLsb, // General variable
-    temperatureMsb, // Temperature & Huidity mode variable
-    temperatureLsb, // Temperature & Huidity mode variable
-    humidity, // Temperature & Huidity mode variable
+    temperatureMsb, // Temperature & Humidity mode variable
+    temperatureLsb, // Temperature & Humidity mode variable
+    humidity, // Temperature & Humidity mode variable
     lightMask, // Light mode variable
     lightValue, // Light mode variable
     alertCounter, // Light mode variable
@@ -218,7 +305,12 @@ function payloadDecode(data) {
 //---------------------------------------------------------------------
 
 //---------------------------------------------------------------------
-// Function to build an HTTP POST request to Ubidots
+/**
+ * Function to build an HTTP POST request to Ubidots
+ * @param {String} token Your Ubidots Token
+ * @param {String} label Variable-s name
+ * @param {Object} payload Data to be upload
+ */
 async function ubidotsRequest(token, label, payload) {
   const options = {
     method: 'POST',
@@ -236,7 +328,7 @@ async function ubidotsRequest(token, label, payload) {
 
 //---------------------------------------------------------------------
 // Miscellaneous
-/* eslint-disable quote-props */
+
 // Byte 3 variables extraction
 const BYTE3_FUNCTIONS = {
   '001': byte3Case1, // Temperature & Humidity mode
