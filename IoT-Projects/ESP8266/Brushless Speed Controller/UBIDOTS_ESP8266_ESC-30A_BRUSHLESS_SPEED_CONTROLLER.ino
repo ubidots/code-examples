@@ -29,7 +29,9 @@ float btof(byte * payload, unsigned int length) {
   for (int i = 0; i < length; i++) {
     demo[i] = payload[i];
   }
-  return atof(demo);
+  float value = atof(demo);
+  free(demo);
+  return value;
 }
 
 // Callback to handle subscription
