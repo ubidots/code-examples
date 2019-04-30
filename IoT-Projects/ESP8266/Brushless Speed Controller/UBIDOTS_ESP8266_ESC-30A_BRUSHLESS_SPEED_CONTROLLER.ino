@@ -25,21 +25,21 @@ Ubidots client(TOKEN);
  
 // cast from an array of chars to float value.
 float btof(byte * payload, unsigned int length) {
-    char * demo_ = (char *) malloc(sizeof(char) * 10);
-    for (int i = 0; i < length; i++) {
-        demo_[i] = payload[i];
-    }
-    return atof(demo_);
+  char * demo = (char *) malloc(sizeof(char) * 10);
+  for (int i = 0; i < length; i++) {
+    demo[i] = payload[i];
+  }
+  return atof(demo);
 }
 
 // Callback to handle subscription
 
 void callback(char* topic, byte* payload, unsigned int length) {
-    value = btof(payload, length);
-    value = map(value, 0, 100, 0, 180); //Map the 0-100 values from the slider to the 0-180 to use the servo lib.
-    ESC.write(value); //Send the value (PWM) to the ESC
-    Serial.println(value);
-    Serial.println(MotorSpeed);
+  value = btof(payload, length);
+  value = map(value, 0, 100, 0, 180); //Map the 0-100 values from the slider to the 0-180 to use the servo lib.
+  ESC.write(value); //Send the value (PWM) to the ESC
+  Serial.println(value);
+  Serial.println(MotorSpeed);
    
 }
 
@@ -48,21 +48,21 @@ void callback(char* topic, byte* payload, unsigned int length) {
  ****************************************/
 
 void setup() {
-    // put your setup code here, to run once:
-    client.ubidotsSetBroker("industrial.api.ubidots.com"); // Sets the broker properly for the business account
-    client.setDebug(true); // Pass a true or false bool value to activate debug messages
-    Serial.begin(115200);
-    client.wifiConnection(WIFINAME, WIFIPASS);
-    client.begin(callback);
-    client.ubidotsSubscribe(DEVICE_LABEL, VARIABLE); //Insert the dataSource and Variable's Labels
-    ESC.attach(MotorPin,1000,2000);
+  // put your setup code here, to run once:
+  client.ubidotsSetBroker("industrial.api.ubidots.com"); // Sets the broker properly for the business account
+  client.setDebug(true); // Pass a true or false bool value to activate debug messages
+  Serial.begin(115200);
+  client.wifiConnection(WIFINAME, WIFIPASS);
+  client.begin(callback);
+  client.ubidotsSubscribe(DEVICE_LABEL, VARIABLE); //Insert the dataSource and Variable's Labels
+  ESC.attach(MotorPin,1000,2000);
 }
 
 void loop() {
-    // put your main code here, to run repeatedly:
-    if (!client.connected()) {
-        client.reconnect();
-        client.ubidotsSubscribe(DEVICE_LABEL, VARIABLE); //Insert the dataSource and Variable's Labels 
-    }
-    client.loop();
+  // put your main code here, to run repeatedly:
+  if (!client.connected()) {
+    client.reconnect();
+    client.ubidotsSubscribe(DEVICE_LABEL, VARIABLE); //Insert the dataSource and Variable's Labels 
+  }
+  client.loop();
 }
