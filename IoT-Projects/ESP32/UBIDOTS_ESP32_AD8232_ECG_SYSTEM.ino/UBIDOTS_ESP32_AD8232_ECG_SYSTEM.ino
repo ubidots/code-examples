@@ -34,7 +34,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
   char p[length + 1];
   memcpy(p, payload, length);
   p[length] = NULL;
-  String message(p);
   Serial.write(payload, length);
   Serial.println(topic);
 }
