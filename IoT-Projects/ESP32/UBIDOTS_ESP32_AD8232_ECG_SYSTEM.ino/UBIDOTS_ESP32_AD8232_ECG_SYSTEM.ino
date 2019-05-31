@@ -66,7 +66,7 @@ void setup() {
   pinMode(SENSOR, INPUT);
 
   Serial.println();
-  Serial.print("Wait for WiFi...");
+  Serial.print("Waiting for WiFi...");
   
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
