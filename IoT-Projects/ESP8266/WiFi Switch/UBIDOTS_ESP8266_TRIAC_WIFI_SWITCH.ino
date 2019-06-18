@@ -14,20 +14,20 @@
  
  ****************************************/
 
-#define TOKEN "........................" // Your Ubidots TOKEN
+#define TOKEN "............................" // Your Ubidots TOKEN
 
-#define WIFINAME "................." //Your SSID
+#define WIFINAME ".........." //Your SSID
 
-#define WIFIPASS "................." // Your Wifi Pass
+#define WIFIPASS ".........." // Your Wifi Pass
 
-#define DEVICE_LABEL "googlehome"   // Name of the device
+#define DEVICE_LABEL "wifiswitch"   // Name of the device
 
-#define VARIABLE_LABEL1  "bombillo"  // Name of the Ubidots variable
+#define VARIABLE_LABEL1  "light"  // Name of the Ubidots variable
 
 const int ERROR_VALUE = 65535;  // Error value 
 
 const uint8_t NUMBER_OF_VARIABLES = 2; // Cantidad de variables a las que el programa se va a suscribir
-char * variable_labels[NUMBER_OF_VARIABLES] = {"bombillo"}; // Variables names
+char * variable_labels[NUMBER_OF_VARIABLES] = {"light"}; // Variables names
 
 
 #define luz  0
@@ -38,7 +38,7 @@ int seguro=0;
 int ledState = LOW;         // the current state of the output pin
 int buttonState;             // the current reading from the input pin
 int lastButtonState = HIGH;   // the previous reading from the input pin
-
+int reading;
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
 unsigned long debounceDelay = 50; 
 
@@ -161,7 +161,7 @@ void setup() {
   char* deviceStatus = getUbidotsDevice(DEVICE_LABEL);
 
   if (strcmp(deviceStatus, "404") == 0) {
-    ubiClient.add("bombillo", 0); //Insert your variable Labels and the value to be sent
+    ubiClient.add("light", 0); //Insert your variable Labels and the value to be sent
     ubiClient.ubidotsPublish(DEVICE_LABEL);
     ubiClient.loop();
   }
@@ -178,13 +178,26 @@ void loop() {
     ubiClient.ubidotsSubscribe(DEVICE_LABEL,VARIABLE_LABEL1); //Insert the Device and Variable's Labels
   }
   ubiClient.loop();    
+  
+  Read();
+
+  Debounce();
+
+  // save the reading. Next time through the loop, it'll be the lastButtonState:
+  lastButtonState = reading;
+          
+}
+
+void Read(){
   // read the state of the switch into a local variable:
-  int reading = digitalRead(boton);
+  reading = digitalRead(boton);
   if (reading != lastButtonState) {
     // reset the debouncing timer
     lastDebounceTime = millis();
   }
+}
 
+void Debounce(){
   if ((millis() - lastDebounceTime) > debounceDelay) {
     // whatever the reading is at, it's been there for longer than the debounce
     // delay, so take it as the actual current state:
@@ -192,45 +205,45 @@ void loop() {
     // if the button state has changed:
     if (reading != buttonState) {
       buttonState = reading;
-
-      // only toggle the LED if the new button state is LOW
-      if (buttonState == LOW) {
-        ledState = !ledState;
-        // set the LED:
-        digitalWrite(luz, ledState);
-        ubiClient.add("bombillo", ledState); //Insert your variable Labels and the value to be sent
-        ubiClient.ubidotsPublish(DEVICE_LABEL);
-        delay(100);
-      }
+      Toggle();
+      
     }
   }
-
-  // save the reading. Next time through the loop, it'll be the lastButtonState:
-  lastButtonState = reading;
-          
 }
 
-
+void Toggle(){
+  // only toggle the LED if the new button state is LOW
+  if (buttonState == LOW) {
+    ledState = !ledState;
+    // set the LED:
+    digitalWrite(luz, ledState);
+    ubiClient.add("light", ledState); //Insert your variable Labels and the value to be sent
+    ubiClient.ubidotsPublish(DEVICE_LABEL);
+  }  
+}
 
 char* getUbidotsDevice(char* deviceLabel) {
   char* data = (char *) malloc(sizeof(char) * 700);
   char* response = (char *) malloc(sizeof(char) * 400);
   sprintf(data, "GET /api/v1.6/devices/%s/", deviceLabel);
   sprintf(data, "%s HTTP/1.1\r\n", data);
-  sprintf(data, "%sHost: industrial.api.ubidots.com\r\nUser-Agent:googlehome/1.0\r\n", data);
+  sprintf(data, "%sHost: industrial.api.ubidots.com\r\nUser-Agent:wifiswitch/1.0\r\n", data);
   sprintf(data, "%sX-Auth-Token: %s\r\nConnection: close\r\n\r\n", data, TOKEN);
+  char* data1 = data;
+  free(data);
+ 
   if (client.connect("industrial.api.ubidots.com", 80)) {
-    client.println(data);
+    client.println(data1);
   } 
   else {
+    free(data);
     return "e";
   }
-
-  free(data);
   int timeout = 0;
   while(!client.available() && timeout < 5000) {
     timeout++;
     if (timeout >= 4999){
+      free(data);
       return "e";
     }
     delay(1);
