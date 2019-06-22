@@ -14,7 +14,7 @@
  
  ****************************************/
 
-#define TOKEN "............................" // Your Ubidots TOKEN
+#define TOKEN "..................................." // Your Ubidots TOKEN
 
 #define WIFINAME ".........." //Your SSID
 
@@ -179,16 +179,16 @@ void loop() {
   }
   ubiClient.loop();    
   
-  Read();
+  readit();
 
-  Debounce();
+  debounce();
 
   // save the reading. Next time through the loop, it'll be the lastButtonState:
   lastButtonState = reading;
           
 }
 
-void Read(){
+void readit(){
   // read the state of the switch into a local variable:
   reading = digitalRead(boton);
   if (reading != lastButtonState) {
@@ -197,21 +197,23 @@ void Read(){
   }
 }
 
-void Debounce(){
+void debounce(){
   if ((millis() - lastDebounceTime) > debounceDelay) {
     // whatever the reading is at, it's been there for longer than the debounce
     // delay, so take it as the actual current state:
-
-    // if the button state has changed:
-    if (reading != buttonState) {
-      buttonState = reading;
-      Toggle();
-      
-    }
+    readit2();  
   }
 }
 
-void Toggle(){
+void readit2(){
+    // if the button state has changed:
+    if (reading != buttonState) {
+      buttonState = reading;
+      toggle();      
+    }
+}
+
+void toggle(){
   // only toggle the LED if the new button state is LOW
   if (buttonState == LOW) {
     ledState = !ledState;
@@ -229,14 +231,14 @@ char* getUbidotsDevice(char* deviceLabel) {
   sprintf(data, "%s HTTP/1.1\r\n", data);
   sprintf(data, "%sHost: industrial.api.ubidots.com\r\nUser-Agent:wifiswitch/1.0\r\n", data);
   sprintf(data, "%sX-Auth-Token: %s\r\nConnection: close\r\n\r\n", data, TOKEN);
-  char* data1 = data;
   free(data);
  
   if (client.connect("industrial.api.ubidots.com", 80)) {
-    client.println(data1);
+    client.println(data);
   } 
   else {
     free(data);
+    free(response);
     return "e";
   }
   int timeout = 0;
@@ -244,6 +246,7 @@ char* getUbidotsDevice(char* deviceLabel) {
     timeout++;
     if (timeout >= 4999){
       free(data);
+      free(response);
       return "e";
     }
     delay(1);
