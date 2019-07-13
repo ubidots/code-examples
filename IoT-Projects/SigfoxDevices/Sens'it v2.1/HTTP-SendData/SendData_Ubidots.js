@@ -267,7 +267,9 @@ function payloadDecode(data) {
   const [batteryMsb, frameType, uplinkPeriod, mode] = byte1VE(byte1); // Byte 1
   const [temperatureMsb, batteryLsb] = byte2VE(byte2); // Byte 2
 
-  if (BYTE3_FUNCTIONS[mode] == undefined) { return(null); }
+  if (BYTE3_FUNCTIONS[mode] == undefined) {
+    return(null);
+  }
 
   const {
     temperatureLsb,
@@ -368,7 +370,9 @@ async function main(args) {
   // Decode & parse the incoming data
   const decoded = await payloadDecode(data);
 
-  if (decoded == null) { return {'ERROR': 'Working mode not supported'}; }
+  if (decoded == null) {
+    return {'ERROR': 'Working mode not supported'};
+  }
 
   // Send the payload to Ubidots
   const response = await ubidotsRequest(token, device, decoded);
