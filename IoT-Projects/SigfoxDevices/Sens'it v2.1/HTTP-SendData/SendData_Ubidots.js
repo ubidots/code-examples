@@ -266,6 +266,11 @@ function payloadDecode(data) {
   // Variables extraction (VE) for each byte --------------
   const [batteryMsb, frameType, uplinkPeriod, mode] = byte1VE(byte1); // Byte 1
   const [temperatureMsb, batteryLsb] = byte2VE(byte2); // Byte 2
+
+  if (BYTE3_FUNCTIONS[mode] == undefined) {
+    return(null);
+  }
+
   const {
     temperatureLsb,
     lightMask,
@@ -313,7 +318,7 @@ function payloadDecode(data) {
 async function ubidotsRequest(token, label, payload) {
   const options = {
     method: 'POST',
-    url: `https://industrial.ubidots.com/api/v1.6/devices/${label}`,
+    url: `https://industrial.api.ubidots.com/api/v1.6/devices/${label}`,
     body: payload,
     json: true,
     headers: {
@@ -364,6 +369,10 @@ async function main(args) {
 
   // Decode & parse the incoming data
   const decoded = await payloadDecode(data);
+
+  if (decoded == null) {
+    return {'ERROR': 'Working mode not supported'};
+  }
 
   // Send the payload to Ubidots
   const response = await ubidotsRequest(token, device, decoded);
