@@ -1,6 +1,5 @@
 /*
-
-RGB Smart Planter integrated with Ubidots for Monitoring & Control. 
+RGB Smart Planter integrated with Ubidots for Monitoring & Control.
 
 This code works for:
 
@@ -21,60 +20,75 @@ Revision: José García - Development & Support Manager @ Ubidots
 /****************************************
  * Include Libraries
  ****************************************/
-#include "UbidotsESPMQTT.h"
 #include <Adafruit_NeoPixel.h>
-#include "DHT.h"
+#include <stdio.h>
 #include <map>
+#include "DHT.h"
+#include "UbidotsESPMQTT.h"
 
 /****************************************
  * Define Pins
  ****************************************/
-#define LIGHTPIN D1 // Digital pin for Led Lamp.
-#define DHTPIN D5     // Digital pin for DHT sensor.
+#define LIGHTPIN D1     // Digital pin for Led Lamp.
+#define DHTPIN D5       // Digital pin for DHT sensor.
 #define NEOPIXELSPIN D6 // Digital pin for NeoPixel Ring.
-#define MOISTUREPIN A0 // Analog pin for Moisture Sensor.
+#define MOISTUREPIN A0  // Analog pin for Moisture Sensor.
 
 /****************************************
  * Define Constants
  ****************************************/
-#define TOKEN "BBFF-xxxxxxxxxxxxxxxxxxxxxxx" // Assign your Ubidots TOKEN.
-#define WIFINAME "xxxxxxxxxxxxx" // Assign your SSID.
-#define WIFIPASS "xxxxxxxxxxxxx" // Assign your WiFi Password.
-#define DEVICE "planter" // Ubidots Device Label.
-#define VAR_PUB_1 "temperature" // Ubidots Variables' label for publishing data.
+#define TOKEN "BBFF-FWFRcjZns9rZQqPSnU72erdn6pSger" // Assign your Ubidots TOKEN.
+#define WIFINAME "UBIWIFI"                          // Assign your SSID.
+#define WIFIPASS "clave123456789ubi"                // Assign your WiFi Password.
+#define DEVICE "planter"                            // Ubidots Device Label.
+#define VAR_PUB_1 "temperature"                     // Ubidots Variables' label for publishing data.
 #define VAR_PUB_2 "humidity"
 #define VAR_PUB_3 "soil-moisture"
 #define VAR_PUB_4 "heat-index"
-#define VAR_SUB_1 "light-1" // Ubidots Variables' label for subscribing to data; These variables have to be created at Ubidots.
-#define VAR_SUB_2 "light-2" 
+#define VAR_SUB_1 "light-1" // Ubidots Variables' label for subscribing to data; \
+                            // These variables have to be created at Ubidots.
+#define VAR_SUB_2 "light-2"
 #define NUMPIXELS 12 // 12 bit NeoPixel Ring
 // Uncomment whatever type you're using
-#define DHTTYPE DHT11   // DHT 11
+#define DHTTYPE DHT11 // DHT 11
 //#define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
 //#define DHTTYPE DHT21   // DHT 21 (AM2301)
-                       //   R,   G,   B
-uint8_t myColors[][6] = {{250,   0,   0},   // Red.
-                         {  0, 255,   0},   // Green.
-                         {  0,   0, 255},   // Blue.
-                         {255, 255,   0},   // Yellow.
-                         {255, 255, 255},   // White.                         
-                         {  0,   0,  0}};  // OFF.
-const uint8_t NUMBER_OF_VARIABLES = 2; // Number of variables for subscription.
-char * variable_labels[NUMBER_OF_VARIABLES] = {VAR_SUB_1, VAR_SUB_2}; // Variables' label for subscription.
-const int ERROR_VALUE = 65535;  // Set here an error value.
-float value; // To store incoming value.
-bool bottom_light; // flag to control conditions for the bottom light.
+
+typedef enum
+{
+  red,
+  green,
+  blue,
+  yellow,
+  white,
+  black
+} NeoPixelColor;
+
+//   R,   G,   B
+uint8_t myColors[][6] = {{250, 0, 0},     // Red.
+                         {0, 255, 0},     // Green.
+                         {0, 0, 255},     // Blue.
+                         {255, 255, 0},   // Yellow.
+                         {255, 255, 255}, // White.
+                         {0, 0, 0}};      // Black.
+const uint8_t numberOfVariables = 2;      // Number of variables for subscription.
+char *variableLabels[numberOfVariables] = {
+    VAR_SUB_1, VAR_SUB_2}; // Variables' label for subscription.
+float value;               // To store incoming value.
+bool bottomLight;          // flag to control conditions for the bottom light.
 
 // Comparison functor to map functions.
-struct cmp_str {
-  bool operator()(char const *a, char const *b) const {
+struct cmp_str
+{
+  bool operator()(char const *a, char const *b) const
+  {
     return strcmp(a, b) < 0;
-    }
+  }
 };
 
 // Map function declaration.
 typedef std::function<void()> FunctionType;
-typedef std::map<const char*, FunctionType, cmp_str> map_topic_subscription;
+typedef std::map<const char *, FunctionType, cmp_str> mapTopicSubscription;
 
 /****************************************
  * Define Instances
@@ -82,22 +96,23 @@ typedef std::map<const char*, FunctionType, cmp_str> map_topic_subscription;
 Ubidots client(TOKEN);
 Adafruit_NeoPixel pixels(NUMPIXELS, NEOPIXELSPIN, NEO_GRB + NEO_KHZ800);
 DHT dht(DHTPIN, DHTTYPE);
-map_topic_subscription ubi_sub_topic;
-
+mapTopicSubscription ubiSubTopic;
 
 /****************************************
  * Main Functions
  ****************************************/
-void setup() {
+void setup()
+{
   Serial.begin(115200);
+  pinMode(LIGHTPIN, OUTPUT);
   // Defines the mapped functions to handle the subscription event.
-  ubi_sub_topic[VAR_SUB_1] = &subscription_handler_1;
-  ubi_sub_topic[VAR_SUB_2] = &subscription_handler_2;
+  ubiSubTopic[VAR_SUB_1] = &subscriptionHandler1;
+  ubiSubTopic[VAR_SUB_2] = &subscriptionHandler2;
   client.ubidotsSetBroker("industrial.api.ubidots.com"); // Sets the broker properly for the business account.
-  client.setDebug(true); // Pass a true or false bool value to activate debug messages.
-  client.wifiConnection(WIFINAME, WIFIPASS); // Establish WiFi connection.
+  client.setDebug(true);                                 // Pass a true or false bool value to activate debug messages.
+  client.wifiConnection(WIFINAME, WIFIPASS);             // Establish WiFi connection.
   client.begin(callback);
-  dht.begin(); // Initializes DHT sensor.
+  dht.begin();    // Initializes DHT sensor.
   pixels.begin(); // Initializes NeoPixel Ring.
   pixels.clear(); // Set all pixel colors to 'off'.
   // Establishes subscription with variables defined.
@@ -105,56 +120,53 @@ void setup() {
   client.ubidotsSubscribe(DEVICE, VAR_SUB_2);
 }
 
-void loop() {
-  if(!client.connected()){
-      // Re-establishes subscription with variables defined when connection is lost.
-      client.reconnect();
-      client.ubidotsSubscribe(DEVICE, VAR_SUB_1);
-      client.ubidotsSubscribe(DEVICE, VAR_SUB_2);
+void loop()
+{
+  if (!client.connected())
+  {
+    // Re-establishes subscription with variables defined when connection is
+    // lost.
+    client.reconnect();
+    client.ubidotsSubscribe(DEVICE, VAR_SUB_1);
+    client.ubidotsSubscribe(DEVICE, VAR_SUB_2);
   }
-  
+
   // Wait a a seconds between measurements.
   delay(1000);
 
   // Reading temperature, humidity and soil moisture values.
   float humidity = dht.readHumidity();
   float temperature = dht.readTemperature();
-  int soil_moisture = analogRead(MOISTUREPIN);
+  int soilMoisture = analogRead(MOISTUREPIN);
   // Compute heat index in Celsius (isFahreheit = false).
-  float heat_index_c = dht.computeHeatIndex(temperature, humidity, false);
-  
+  float heatIndexC = dht.computeHeatIndex(temperature, humidity, false);
+
   // Check if any reads failed and exit early (to try again).
-  if (isnan(humidity) || isnan(temperature)) {
+  if (isnan(humidity) || isnan(temperature))
+  {
     Serial.println(F("Failed to read from DHT sensor!"));
-    return;
-  }  
+  }
 
   // Controls NeoPixel's colors based on the temperature values.
-  if (bottom_light) {
-    if (temperature <= 16){
-      colorWipe("blue", 50);
-    } 
-    
-    else if ((temperature > 16) && (temperature <= 21)){
-      colorWipe("green", 50);
-    } 
-    
-    else if ((temperature > 21) && (temperature <= 26)){
-      colorWipe("yellow", 50);
-    } 
-    
-    else  if (temperature > 26){
-      colorWipe("red", 50);
-    }  
+  if (bottomLight)
+  {
+    if (inRange(temperature, 0, 16))
+      colorWipe(blue, 50);
+    if (inRange(temperature, 16, 21))
+      colorWipe(green, 50);
+    if (inRange(temperature, 21, 26))
+      colorWipe(yellow, 50);
+    if (inRange(temperature, 26, 40))
+      colorWipe(red, 50);
   }
 
   // Adds variables to be published to Ubidots.
   client.add(VAR_PUB_1, temperature);
   client.add(VAR_PUB_2, humidity);
-  client.add(VAR_PUB_3, soil_moisture);
-  client.add(VAR_PUB_4, heat_index_c);
-  
-  //Publishes all variables added into the device defined.
+  client.add(VAR_PUB_3, soilMoisture);
+  client.add(VAR_PUB_4, heatIndexC);
+
+  // Publishes all variables added into the device defined.
   client.ubidotsPublish(DEVICE);
   client.loop();
 }
@@ -164,103 +176,133 @@ void loop() {
  ****************************************/
 
 // Function to be executed when var_sub_1 change its status.
-void subscription_handler_1() {
-  pinMode(LIGHTPIN, OUTPUT);
-  if (value == 1) {
+void subscriptionHandler1()
+{
+  if (value == 1)
+  {
     Serial.println("Planter Lamp turned ON.");
-    digitalWrite(LIGHTPIN, HIGH);  
-  } else {
+    digitalWrite(LIGHTPIN, HIGH);
+  }
+  else
+  {
     Serial.println("Planter Lamp turned OFF.");
     digitalWrite(LIGHTPIN, LOW);
   }
 };
 
 // Function to be executed when var_sub_2 change its status.
-void subscription_handler_2() {
-  if (value == 1) {
+void subscriptionHandler2()
+{
+  if (value == 1)
+  {
     Serial.println("Planter bottom light turned ON.");
-    for (int i=0; i < 3; i++) {
-      colorWipe("red", 50);
-      colorWipe("green", 50);
-      colorWipe("blue", 50);
+    for (int i = 0; i < 3; i++)
+    {
+      colorWipe(red, 50);
+      colorWipe(green, 50);
+      colorWipe(blue, 50);
     };
-    colorWipe("white", 200);
-    bottom_light = true;
-  } else {
+    colorWipe(white, 200);
+    bottomLight = true;
+  }
+  else
+  {
     Serial.println("Planter bottom light turned OFF.");
-    colorWipe("white", 50);
-    colorWipe("off", 200);
-    bottom_light = false;
+    colorWipe(white, 50);
+    colorWipe(black, 200);
+    bottomLight = false;
   }
 };
 
 /****************************************
  * Auxiliar Functions
  ****************************************/
+// Return an int with the length of a char
+int _strlen(char *s)
+{
+  int l = 0;
+  while (*s != '\0')
+  {
+    s++;
+    l++;
+  }
+  return (l);
+}
 
 // Callback to handle subscription
-void callback(char* topic, byte* payload, unsigned int length) {
-  char* variable_label = (char *) malloc(sizeof(char) * 30);
-  get_variable_label_topic(topic, variable_label); // Saves the variable label.
-  value = btof(payload, length); // Saves the value of the variable subscribed.
-  execute_cases(variable_label); // Executes the function handler for the variable subscribed.
-  free(variable_label); // Free memory.
+void callback(char *topic, byte *payload, unsigned int length)
+{
+  char *variableLabel = (char *)malloc(sizeof(char) * 30);
+  getVariableLabelTopic(topic, variableLabel); // Saves the variable label.
+  value = btof(payload, length);               // Saves the value of the variable subscribed.
+  execute_cases(variableLabel);                // Executes the function handler for the
+                                               // variable subscribed.
+  free(variableLabel);                         // Free memory.
 }
 
 // Parse the topic received to extract the variable label.
-void get_variable_label_topic(char * topic, char * variable_label) {
+void getVariableLabelTopic(char *topic, char *variable_label)
+{
   sprintf(variable_label, "");
-  for (int i = 0; i < NUMBER_OF_VARIABLES; i++) {
-    char * result_lv = strstr(topic, variable_labels[i]);
-    if (result_lv != NULL) {
-      uint8_t len = strlen(result_lv);      
+  for (int i = 0; i < numberOfVariables; i++)
+  {
+    char *result_lv = strstr(topic, variableLabels[i]);
+    if (result_lv != NULL)
+    {
+      uint8_t len = strlen(result_lv);
       char result[100];
       uint8_t i = 0;
-      for (i = 0; i < len - 3; i++) { 
+      for (i = 0; i < len - 3; i++)
+      {
         result[i] = result_lv[i];
       }
       result[i] = '\0';
-      sprintf(variable_label, "%s", result);
+      snprintf(variable_label, _strlen(result) + 1, "%s", result);
       break;
     }
   }
 }
 
 // Cast from an array of chars to float value.
-float btof(byte * payload, unsigned int length) {
-  char * demo_ = (char *) malloc(sizeof(char) * 10);
-  for (int i = 0; i < length; i++) {
+float btof(byte *payload, unsigned int length)
+{
+  char *demo_ = (char *)malloc(sizeof(char) * 10);
+  for (int i = 0; i < length; i++)
+  {
     demo_[i] = payload[i];
   }
   return atof(demo_);
 }
 
 // Executes the respective "Subscription Function" based on the value received.
-void execute_cases(char* variable_label) {  
-  if ( ubi_sub_topic.find(variable_label) != ubi_sub_topic.end()) {
-    map_topic_subscription::iterator i = ubi_sub_topic.find(variable_label);
-    (i->second)(); 
+void execute_cases(char *variable_label)
+{
+  if (ubiSubTopic.find(variable_label) != ubiSubTopic.end())
+  {
+    mapTopicSubscription::iterator i = ubiSubTopic.find(variable_label);
+    (i->second)();
   }
 }
 
 // Fills NeoPixel ring pixels one after another with color.
-void colorWipe(char* color, int wait) {
-  int counter = 0;
-  int red, green, blue;
-  char *colors[] = {"red", "green", "blue", "yellow", "white", "off"};
+void colorWipe(NeoPixelColor color, int wait)
+{
+  int r, g, b;
 
-  for (int i = 0; i <= sizeof(colors) - 1; i++) {
-    if (color == colors[i]) {
-       red = myColors[counter][0];
-       green = myColors[counter][1];
-       blue = myColors[counter][2];    
-    }
-    counter++;
-  };
-    
-  for(int i=0; i<pixels.numPixels(); i++) { 
-    pixels.setPixelColor(i, red, green, blue);
+  r = myColors[color][0];
+  g = myColors[color][1];
+  b = myColors[color][2];
+
+  for (int i = 0; i < pixels.numPixels(); i++)
+  {
+    pixels.setPixelColor(i, r, g, b);
     pixels.show();
     delay(wait);
   }
+}
+
+// Verifies if the value received is in the range expected
+bool inRange(float x, int low, int high)
+{
+  return ((x - low) > 0 && (high - x) >= 0);
 }
