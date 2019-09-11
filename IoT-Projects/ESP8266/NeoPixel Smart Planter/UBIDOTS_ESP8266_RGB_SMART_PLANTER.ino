@@ -37,18 +37,17 @@ Revision: José García - Development & Support Manager @ Ubidots
 /****************************************
  * Define Constants
  ****************************************/
-#define TOKEN "BBFF-FWFRcjZns9rZQqPSnU72erdn6pSger" // Assign your Ubidots TOKEN.
-#define WIFINAME "UBIWIFI"                          // Assign your SSID.
-#define WIFIPASS "clave123456789ubi"                // Assign your WiFi Password.
-#define DEVICE "planter"                            // Ubidots Device Label.
-#define VAR_PUB_1 "temperature"                     // Ubidots Variables' label for publishing data.
+#define TOKEN "BBFF-xxxxxxxxx"  // Assign your Ubidots TOKEN.
+#define WIFINAME "xxxxxxxxx"    // Assign your SSID.
+#define WIFIPASS "xxxxxxxxx"    // Assign your WiFi Password.
+#define DEVICE "planter"        // Ubidots Device Label.
+#define VAR_PUB_1 "temperature" // Ubidots Variables' label for publishing data.
 #define VAR_PUB_2 "humidity"
 #define VAR_PUB_3 "soil-moisture"
 #define VAR_PUB_4 "heat-index"
-#define VAR_SUB_1 "light-1" // Ubidots Variables' label for subscribing to data; \
-                            // These variables have to be created at Ubidots.
-#define VAR_SUB_2 "light-2"
-#define NUMPIXELS 12 // 12 bit NeoPixel Ring
+#define VAR_SUB_1 "light-1" // Ubidots Variables' label for subscribing to data;
+#define VAR_SUB_2 "light-2" // These variables have to be created at Ubidots.
+#define NUMPIXELS 12        // 12 bit NeoPixel Ring
 // Uncomment whatever type you're using
 #define DHTTYPE DHT11 // DHT 11
 //#define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
@@ -65,17 +64,16 @@ typedef enum
 } NeoPixelColor;
 
 //   R,   G,   B
-uint8_t myColors[][6] = {{250, 0, 0},     // Red.
-                         {0, 255, 0},     // Green.
-                         {0, 0, 255},     // Blue.
-                         {255, 255, 0},   // Yellow.
-                         {255, 255, 255}, // White.
-                         {0, 0, 0}};      // Black.
-const uint8_t numberOfVariables = 2;      // Number of variables for subscription.
-char *variableLabels[numberOfVariables] = {
-    VAR_SUB_1, VAR_SUB_2}; // Variables' label for subscription.
-float value;               // To store incoming value.
-bool bottomLight;          // flag to control conditions for the bottom light.
+uint8_t myColors[][6] = {{250, 0, 0},                             // Red.
+                         {0, 255, 0},                             // Green.
+                         {0, 0, 255},                             // Blue.
+                         {255, 255, 0},                           // Yellow.
+                         {255, 255, 255},                         // White.
+                         {0, 0, 0}};                              // Black.
+const uint8_t numberOfVariables = 2;                              // Number of variables for subscription.
+char *variableLabels[numberOfVariables] = {VAR_SUB_1, VAR_SUB_2}; // Variables' label for subscription.
+float value;                                                      // To store incoming value.
+bool bottomLight;                                                 // flag to control conditions for the bottom light.
 
 // Comparison functor to map functions.
 struct cmp_str
