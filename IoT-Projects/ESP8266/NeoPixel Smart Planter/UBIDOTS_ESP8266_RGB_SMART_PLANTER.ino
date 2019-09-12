@@ -16,7 +16,6 @@ Libraries required:
 Made by: Maria Hernández - IoT Developer Advocate @ Ubidots
 Revision: José García - Development & Support Manager @ Ubidots
 
-*/
 /****************************************
  * Include Libraries
  ****************************************/
@@ -37,17 +36,18 @@ Revision: José García - Development & Support Manager @ Ubidots
 /****************************************
  * Define Constants
  ****************************************/
-#define TOKEN "BBFF-xxxxxxxxx"  // Assign your Ubidots TOKEN.
-#define WIFINAME "xxxxxxxxx"    // Assign your SSID.
-#define WIFIPASS "xxxxxxxxx"    // Assign your WiFi Password.
+#define TOKEN "BBFF-xxxxxxxxxx" // Assign your Ubidots TOKEN.
+#define WIFINAME "xxxxxxxxxx"   // Assign your SSID.
+#define WIFIPASS "xxxxxxxxxx"   // Assign your WiFi Password.
 #define DEVICE "planter"        // Ubidots Device Label.
 #define VAR_PUB_1 "temperature" // Ubidots Variables' label for publishing data.
 #define VAR_PUB_2 "humidity"
 #define VAR_PUB_3 "soil-moisture"
 #define VAR_PUB_4 "heat-index"
-#define VAR_SUB_1 "light-1" // Ubidots Variables' label for subscribing to data;
-#define VAR_SUB_2 "light-2" // These variables have to be created at Ubidots.
-#define NUMPIXELS 12        // 12 bit NeoPixel Ring
+#define VAR_SUB_1 "light-1" // Ubidots Variables' label for subscribing to data; \
+                            // These variables have to be created at Ubidots.
+#define VAR_SUB_2 "light-2"
+#define NUMPIXELS 12 // 12 bit NeoPixel Ring
 // Uncomment whatever type you're using
 #define DHTTYPE DHT11 // DHT 11
 //#define DHTTYPE DHT22   // DHT 22  (AM2302), AM2321
@@ -72,8 +72,11 @@ uint8_t myColors[][6] = {{250, 0, 0},                             // Red.
                          {0, 0, 0}};                              // Black.
 const uint8_t numberOfVariables = 2;                              // Number of variables for subscription.
 char *variableLabels[numberOfVariables] = {VAR_SUB_1, VAR_SUB_2}; // Variables' label for subscription.
-float value;                                                      // To store incoming value.
+float value;                                                      // Store incoming value.
+int lastValue;                                                    // Store incoming value.
 bool bottomLight;                                                 // flag to control conditions for the bottom light.
+unsigned long initTime;                                           // Store the init time.
+const long SECONDS_TO_RECONNECT = 180000;                         // Period to reconnect MQTT connection.
 
 // Comparison functor to map functions.
 struct cmp_str
@@ -101,12 +104,14 @@ mapTopicSubscription ubiSubTopic;
  ****************************************/
 void setup()
 {
+  initTime = millis(); // Save the init time
   Serial.begin(115200);
-  pinMode(LIGHTPIN, OUTPUT);
+  pinMode(LIGHTPIN, OUTPUT); // Declare pin mode
   // Defines the mapped functions to handle the subscription event.
   ubiSubTopic[VAR_SUB_1] = &subscriptionHandler1;
   ubiSubTopic[VAR_SUB_2] = &subscriptionHandler2;
-  client.ubidotsSetBroker("industrial.api.ubidots.com"); // Sets the broker properly for the business account.
+  client.ubidotsSetBroker("industrial.api.ubidots.com"); // Sets the broker properly for the
+                                                         // business account.
   client.setDebug(true);                                 // Pass a true or false bool value to activate debug messages.
   client.wifiConnection(WIFINAME, WIFIPASS);             // Establish WiFi connection.
   client.begin(callback);
@@ -120,19 +125,18 @@ void setup()
 
 void loop()
 {
-  if (!client.connected())
+  // Re-establishes subscription with variables defined when connection is lost or every 3 minutes.
+  if (!client.connected() || abs(millis() - initTime) > SECONDS_TO_RECONNECT)
   {
-    // Re-establishes subscription with variables defined when connection is
-    // lost.
+    initTime = millis();
     client.reconnect();
     client.ubidotsSubscribe(DEVICE, VAR_SUB_1);
     client.ubidotsSubscribe(DEVICE, VAR_SUB_2);
   }
 
-  // Wait a a seconds between measurements.
-  delay(1000);
+  client.reconnect();
 
-  // Reading temperature, humidity and soil moisture values.
+  // Reading temperature, humidity and soil moisture values.a
   float humidity = dht.readHumidity();
   float temperature = dht.readTemperature();
   int soilMoisture = analogRead(MOISTUREPIN);
@@ -167,6 +171,8 @@ void loop()
   // Publishes all variables added into the device defined.
   client.ubidotsPublish(DEVICE);
   client.loop();
+
+  delay(1000);
 }
 
 /****************************************
@@ -191,25 +197,29 @@ void subscriptionHandler1()
 // Function to be executed when var_sub_2 change its status.
 void subscriptionHandler2()
 {
-  if (value == 1)
+  if (value != lastValue)
   {
-    Serial.println("Planter bottom light turned ON.");
-    for (int i = 0; i < 3; i++)
+    if (value == 1)
     {
-      colorWipe(red, 50);
-      colorWipe(green, 50);
-      colorWipe(blue, 50);
-    };
-    colorWipe(white, 200);
-    bottomLight = true;
+      Serial.println("Planter bottom light turned ON.");
+      for (int i = 0; i < 3; i++)
+      {
+        colorWipe(red, 50);
+        colorWipe(green, 50);
+        colorWipe(blue, 50);
+      };
+      colorWipe(white, 200);
+      bottomLight = true;
+    }
+    else
+    {
+      Serial.println("Planter bottom light turned OFF.");
+      colorWipe(white, 50);
+      colorWipe(black, 200);
+      bottomLight = false;
+    }
   }
-  else
-  {
-    Serial.println("Planter bottom light turned OFF.");
-    colorWipe(white, 50);
-    colorWipe(black, 200);
-    bottomLight = false;
-  }
+  lastValue = value;
 };
 
 /****************************************
@@ -255,6 +265,7 @@ void getVariableLabelTopic(char *topic, char *variable_label)
         result[i] = result_lv[i];
       }
       result[i] = '\0';
+      //sprintf(variable_label, "%s", result);
       snprintf(variable_label, _strlen(result) + 1, "%s", result);
       break;
     }
