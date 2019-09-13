@@ -73,10 +73,10 @@ uint8_t myColors[][6] = {{250, 0, 0},                             // Red.
 const uint8_t numberOfVariables = 2;                              // Number of variables for subscription.
 char *variableLabels[numberOfVariables] = {VAR_SUB_1, VAR_SUB_2}; // Variables' label for subscription.
 float value;                                                      // Store incoming value.
-int lastValue;                                                    // Store incoming value.
-bool bottomLight;                                                 // flag to control conditions for the bottom light.
-unsigned long initTime;                                           // Store the init time.
-const long SECONDS_TO_RECONNECT = 180000;                         // Period to reconnect MQTT connection.
+int lastValue;
+bool bottomLight;                         // flag to control conditions for the bottom light.
+unsigned long initTime;                   // Store the init time.
+const long SECONDS_TO_RECONNECT = 180000; // Period to reconnect MQTT connection.
 
 // Comparison functor to map functions.
 struct cmp_str
@@ -226,7 +226,7 @@ void subscriptionHandler2()
  * Auxiliar Functions
  ****************************************/
 // Return an int with the length of a char
-int _strlen(char *s)
+int strLen(char *s)
 {
   int l = 0;
   while (*s != '\0')
@@ -243,30 +243,29 @@ void callback(char *topic, byte *payload, unsigned int length)
   char *variableLabel = (char *)malloc(sizeof(char) * 30);
   getVariableLabelTopic(topic, variableLabel); // Saves the variable label.
   value = btof(payload, length);               // Saves the value of the variable subscribed.
-  execute_cases(variableLabel);                // Executes the function handler for the
+  executeCases(variableLabel);                 // Executes the function handler for the
                                                // variable subscribed.
   free(variableLabel);                         // Free memory.
 }
 
 // Parse the topic received to extract the variable label.
-void getVariableLabelTopic(char *topic, char *variable_label)
+void getVariableLabelTopic(char *topic, char *variableLabel)
 {
-  sprintf(variable_label, "");
+  sprintf(variableLabel, "");
   for (int i = 0; i < numberOfVariables; i++)
   {
-    char *result_lv = strstr(topic, variableLabels[i]);
-    if (result_lv != NULL)
+    char *resultLv = strstr(topic, variableLabels[i]);
+    if (resultLv != NULL)
     {
-      uint8_t len = strlen(result_lv);
+      uint8_t len = strlen(resultLv);
       char result[100];
       uint8_t i = 0;
       for (i = 0; i < len - 3; i++)
       {
-        result[i] = result_lv[i];
+        result[i] = resultLv[i];
       }
       result[i] = '\0';
-      //sprintf(variable_label, "%s", result);
-      snprintf(variable_label, _strlen(result) + 1, "%s", result);
+      snprintf(variableLabel, strLen(result) + 1, "%s", result);
       break;
     }
   }
@@ -284,11 +283,11 @@ float btof(byte *payload, unsigned int length)
 }
 
 // Executes the respective "Subscription Function" based on the value received.
-void execute_cases(char *variable_label)
+void executeCases(char *variableLabel)
 {
-  if (ubiSubTopic.find(variable_label) != ubiSubTopic.end())
+  if (ubiSubTopic.find(variableLabel) != ubiSubTopic.end())
   {
-    mapTopicSubscription::iterator i = ubiSubTopic.find(variable_label);
+    mapTopicSubscription::iterator i = ubiSubTopic.find(variableLabel);
     (i->second)();
   }
 }
@@ -310,7 +309,7 @@ void colorWipe(NeoPixelColor color, int wait)
   }
 }
 
-// Verifies if the value received is in the range expected
+// Verifies if the value received is in the expected range
 bool inRange(float x, int low, int high)
 {
   return ((x - low) > 0 && (high - x) >= 0);
