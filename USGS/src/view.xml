@@ -1,0 +1,24 @@
+<form name="formName">
+    <group name="groupName">
+        <group name="groupName">
+            <label name="token">Ubidots Token</label>
+            <input name="token" type="text" />
+        </group>
+    </group>
+    <group name="groupName">
+        <group name="groupName">
+            <label name="device">Device label</label>
+            <input name="device" type="text" />
+        </group>
+        <group name="groupName">
+            <label name="sites">Site Number</label>
+            <input name="sites" type="text" />
+        </group>
+    </group>
+    <group name="groupName">
+        <group name="groupName">
+            <label name="parameterCd">USGS parameter codes (separated by comma)</label>
+            <input name="parameterCd" type="text" />
+        </group>
+    </group>
+</form>
