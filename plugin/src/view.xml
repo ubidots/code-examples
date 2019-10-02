@@ -1,0 +1,29 @@
+<form name="formName">
+    <group name="groupName">
+        <group name="groupName">
+            <label name="ubidotsToken">Ubidots token</label>
+            <input name="ubidotsToken" type="text" />
+        </group>
+    </group>
+    <group name="groupName">
+        <group name="groupName">
+            <label name="deviceLabel">Device label</label>
+            <input name="deviceLabel" type="text" />
+        </group>
+    </group>
+    <group name="groupName">
+        <group name="groupName">
+            <label name="base">Base currency</label>
+            <input name="base" type="dropdown">
+            	<option value="USD">American dollar</option>
+                <option value="EUR">Euro</option>
+                <option value="GBP">Pound sterling</option>
+                <option value="CAD">Canadian dollar</option>
+	    </input>
+        </group>
+        <group name="groupName">
+            <label name="currencies">Test</label>
+            <input name="currencies" type="text" />
+        </group>
+    </group>
+</form>
