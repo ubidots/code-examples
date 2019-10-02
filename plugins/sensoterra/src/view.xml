@@ -1,0 +1,28 @@
+<form name="formName">
+    <group name="groupName">
+        <group name="groupName">
+            <label name="ubidotsToken">Ubidots Token</label>
+            <input name="ubidotsToken" type="text" />
+        </group>
+    </group>
+    <group name="groupName">
+        <group name="groupName">
+            <label name="email">Sensoterra email</label>
+            <input name="email" type="text" />
+        </group>
+        <group name="groupName">
+            <label name="password">Sensoterra password</label>
+            <input name="password" type="text" />
+        </group>
+    </group>
+    <group name="groupName">
+        <group name="groupName">
+            <label name="limit">Limit (Number of results to return)</label>
+            <input name="limit" type="text" />
+        </group>
+        <group name="groupName">
+            <label name="skip">Skip (Number of results to skip)</label>
+            <input name="skip" type="text" />
+        </group>
+    </group>
+</form>
