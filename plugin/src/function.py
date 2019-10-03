@@ -10,19 +10,19 @@ def main(kwargs):
         print("[ERROR] One or more parameters are missing")
         return {"status": "error"}
 
-    result = get_currency(**kwargs)
+    result_get = get_currency(**kwargs)
 
     if result.get("result") == "ok":
         args = result.get("data").get("rates")
     else:
-        return result.json()
+        return result_get
 
     print("[INFO] Currencies obtained", args)
 
-    req = update_device(args, **kwargs)
+    result_post = update_device(args, **kwargs)
     del kwargs
 
-    return req.json()
+    return result_post
 
 
 def get_currency(currencies, base, _plugin_env_API_URL, **kwargs):
@@ -47,7 +47,7 @@ def update_device(
     url = "{}/api/v1.6/devices/{}".format(_plugin_env_UBIDOTS_URL, deviceLabel)
     headers = {"X-Auth-Token": ubidotsToken, "Content-Type": "application/json"}
     req = create_request(url, headers, attempts=5, request_type="post", data=payload)
-    return req
+    return {"result": "ok", "data": req.json()}
 
 
 def create_request(url, headers, attempts, request_type, data=None):
