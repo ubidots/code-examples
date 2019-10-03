@@ -1,0 +1,10 @@
+{
+	"version": "0.0.1",
+	"runtime": "nodejs:8",
+	"environment": {
+		"urlUbidots": "https://industrial.api.ubidots.com/api/v1.6/devices",
+		"urlUsgs": "https://nwis.waterservices.usgs.gov/nwis/iv/?format=JSON"
+	},
+	"plugin_type": "cron",
+	"interval": 1
+}
