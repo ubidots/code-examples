@@ -7,7 +7,7 @@
     </group>
     <group name="groupName">
         <group name="groupName">
-            <label name="device">Device label</label>
+            <label name="device">Device Label</label>
             <input name="device" type="text" />
         </group>
         <group name="groupName">
@@ -17,7 +17,7 @@
     </group>
     <group name="groupName">
         <group name="groupName">
-            <label name="parameterCd">USGS parameter codes (separated by comma)</label>
+            <label name="parameterCd">USGS Parameter Codes (separated by comma)</label>
             <input name="parameterCd" type="text" />
         </group>
     </group>
