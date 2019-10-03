@@ -1,46 +1,43 @@
 import requests
 import time
 
-
 def main(kwargs):
 
     print("[INFO] Info recieved: {}".format(kwargs))
-
+    
     if len(kwargs) < 4:
         print("[ERROR] One or more parameters are missing")
-        return {"status": "error"}
+        return {"result": "error"}
 
-    result_get = get_currency(**kwargs)
+    result=get_currency(**kwargs)
 
     if result.get("result") == "ok":
-        args = result.get("data").get("rates")
+        args = result.get("data")
     else:
-        return result_get
+        return result
 
-    print("[INFO] Currencies obtained", args)
+    print ("[INFO] Currencies obtained",args)
+    data = {}
 
-    result_post = update_device(args, **kwargs)
+    for i in args.get("rates"):
+        data[i] = {"value":args.get("rates").get(i), "context":{"base":args.get("base")}}
+        
+    req = update_device(data, **kwargs)
     del kwargs
 
-    return result_post
-
+    return req
 
 def get_currency(currencies, base, _plugin_env_API_URL, **kwargs):
-
+    
     url = "{}/latest?base={}&symbols={}".format(_plugin_env_API_URL, base, currencies)
     headers = {"Content-Type": "application/json"}
-    try:
+    try :
         req = create_request(url, headers, attempts=5, request_type="get")
     except:
-        return {
-            "result": "[ERROR] The currency server did not respond, please try again later"
-        }
-    return {"result": "ok", "data": req.json()}
+        return {"result": "[ERROR] The currency server did not respond, please try again later"}
+    return {"result": "ok", "data":req.json()}
 
-
-def update_device(
-    payload, _plugin_env_UBIDOTS_URL, deviceLabel, ubidotsToken, **kwargs
-):
+def update_device(payload, _plugin_env_UBIDOTS_URL, deviceLabel, ubidotsToken, **kwargs):
     """
     updates a variable with a single dot
     """
@@ -48,7 +45,6 @@ def update_device(
     headers = {"X-Auth-Token": ubidotsToken, "Content-Type": "application/json"}
     req = create_request(url, headers, attempts=5, request_type="post", data=payload)
     return {"result": "ok", "data": req.json()}
-
 
 def create_request(url, headers, attempts, request_type, data=None):
     """
