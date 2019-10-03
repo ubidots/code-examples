@@ -1,36 +1,46 @@
 import requests
 import time
 
+
 def main(kwargs):
 
     print("[INFO] Info recieved: {}".format(kwargs))
-    
+
     if len(kwargs) < 4:
         print("[ERROR] One or more parameters are missing")
         return {"status": "error"}
-    
+
     result = get_currency(**kwargs)
 
-    args = result.get("rates")
+    if result.get("result") == "ok":
+        args = result.get("data").get("rates")
+    else:
+        return result.json()
 
-    print ("[INFO] Currencies obtained",args)
-       
+    print("[INFO] Currencies obtained", args)
+
     req = update_device(args, **kwargs)
     del kwargs
 
     return req.json()
 
+
 def get_currency(currencies, base, _plugin_env_API_URL, **kwargs):
-    
+
     url = "{}/latest?base={}&symbols={}".format(_plugin_env_API_URL, base, currencies)
     headers = {"Content-Type": "application/json"}
-    try :
+    try:
         req = create_request(url, headers, attempts=5, request_type="get")
     except:
-        return {"Request result": "[ERROR] The currency server did not respond, please try again later"}
-    return req.json()
+        return {
+            "result": "[ERROR] The currency server did not respond, please try again later"
+        }
+    return {"result": "ok", "data": req.json()}
 
-def update_device(payload, _plugin_env_UBIDOTS_URL, deviceLabel, ubidotsToken, **kwargs):
+
+def update_device(
+    payload, _plugin_env_UBIDOTS_URL, deviceLabel, ubidotsToken, **kwargs
+):
     """
     updates a variable with a single dot
     """
@@ -38,6 +48,7 @@ def update_device(payload, _plugin_env_UBIDOTS_URL, deviceLabel, ubidotsToken, *
     headers = {"X-Auth-Token": ubidotsToken, "Content-Type": "application/json"}
     req = create_request(url, headers, attempts=5, request_type="post", data=payload)
     return req
+
 
 def create_request(url, headers, attempts, request_type, data=None):
     """
