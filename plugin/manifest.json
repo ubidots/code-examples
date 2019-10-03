@@ -1,7 +1,10 @@
 {
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"runtime": "python-jessie:3",
-	"environment": {"API_URL": "https://api.exchangeratesapi.io", "UBIDOTS_URL": "https://industrial.api.ubidots.com"},
+	"environment": {
+		"API_URL": "https://api.exchangeratesapi.io",
+		"UBIDOTS_URL": "https://industrial.api.ubidots.com"
+	},
 	"plugin_type": "cron",
-	"interval": 1
+	"interval": 5
 }

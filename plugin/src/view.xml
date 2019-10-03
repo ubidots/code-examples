@@ -19,10 +19,16 @@
                 <option value="EUR">Euro</option>
                 <option value="GBP">Pound sterling</option>
                 <option value="CAD">Canadian dollar</option>
+                <option value="JPY">Japanese yen</option>
+                <option value="CHF">Swiss franc</option>
+                <option value="AUD">Australian dollar</option>
+                <option value="CNY">Chinese yuan renminbi</option>
+                <option value="HKD">Hong Kong dollar</option>
+                <option value="NZD">New Zealand dollar</option>
 	    </input>
         </group>
         <group name="groupName">
-            <label name="currencies">Test</label>
+            <label name="currencies">Currencies to retrieve</label>
             <input name="currencies" type="text" />
         </group>
     </group>

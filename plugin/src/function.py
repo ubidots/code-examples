@@ -13,7 +13,7 @@ def main(kwargs):
 
     args = result.get("rates")
 
-    print (args)
+    print ("[INFO] Currencies obtained",args)
        
     req = update_device(args, **kwargs)
     del kwargs
@@ -24,7 +24,10 @@ def get_currency(currencies, base, _plugin_env_API_URL, **kwargs):
     
     url = "{}/latest?base={}&symbols={}".format(_plugin_env_API_URL, base, currencies)
     headers = {"Content-Type": "application/json"}
-    req = create_request(url, headers, attempts=5, request_type="get")
+    try :
+        req = create_request(url, headers, attempts=5, request_type="get")
+    except:
+        return {"Request result": "[ERROR] The currency server did not respond, please try again later"}
     return req.json()
 
 def update_device(payload, _plugin_env_UBIDOTS_URL, deviceLabel, ubidotsToken, **kwargs):
