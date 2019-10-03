@@ -1,0 +1,11 @@
+{
+	"version": "0.0.1",
+	"runtime": "nodejs:8",
+	"environment": {
+		"ubidotsUrl": "https://industrial.api.ubidots.com/api/v1.6",
+		"sensoterraUrl": "https://monitor.sensoterra.com/api/v3",
+		"varLabelSoilMoisture": "soil-moisture"
+	},
+	"plugin_type": "cron",
+	"interval": 60
+}
