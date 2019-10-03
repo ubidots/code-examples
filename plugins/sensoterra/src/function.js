@@ -61,6 +61,65 @@ function probeSoil(soilId) {
   return id[soilId];
 }
 
+/* Request probe's data to Sensoterra API and post it to Ubidots */
+async function dataIngestion(
+  _plugin_env_sensoterraUrl,
+  email,
+  password,
+  limit,
+  skip,
+  _plugin_env_ubidotsUrl,
+  ubidotsToken,
+  _plugin_env_varLabelSoilMoisture
+) {
+  var ubidotsResponse = {};
+  /* Getting an API Key for auth */
+  var response = await getApiKey(_plugin_env_sensoterraUrl, email, password);
+  var apiKey = response["api_key"]; // Get API key from response.
+  /* Get last value from registered probes on Sensoterra */
+  var probes = await getProbes(_plugin_env_sensoterraUrl, apiKey, limit, skip);
+  /* Checks size of JSON to update data for the available probes */
+  var size = Object.keys(probes).length; // Size of the retrieved JSON file
+  for (var i = 0; i < size; i++) {
+    var deviceName = probes[i]["name"];
+    var deviceLabel = probes[i]["id"];
+    var value = probes[i]["status"]["last_reading"];
+    var depthId = probes[i]["depth_id"];
+    var soilId = probes[i]["soil_profile"][0]["soil_id"];
+    var timestamp = new Date(probes[i]["status"]["last_update"]).valueOf(); //in milliseconds
+    lat = probes[i]["latitude"];
+    lng = probes[i]["longitude"];
+    status = probes[i]["status"]["code"];
+    signalStrength = probes[i]["status"]["signal_strength"];
+
+    /* Build JSON */
+    payload = buildJson(_plugin_env_varLabelSoilMoisture, value, timestamp);
+
+    try {
+      /* Create a new devices at Ubidots if doesn't exists */
+      await ubidotsDeviceCreation(
+        _plugin_env_ubidotsUrl,
+        ubidotsToken,
+        deviceName,
+        deviceLabel,
+        probeDepth(depthId),
+        probeSoil(soilId)
+      );
+      /* Post to Ubidots */
+      postResponse = await ubidotsPost(
+        _plugin_env_ubidotsUrl,
+        ubidotsToken,
+        deviceLabel,
+        payload
+      );
+      ubidotsResponse[deviceName] = postResponse;
+    } catch (error) {
+      return error;
+    }
+  }
+  return ubidotsResponse;
+}
+
 /* Create a new device at Ubidots if the device doesn't exist*/
 async function ubidotsDeviceCreation(
   ubidotsUrl,
@@ -161,42 +220,18 @@ async function main(params) {
   var _plugin_env_varLabelSoilMoisture =
     params._plugin_env_varLabelSoilMoisture; // Ubidots soil moisture variable label
 
-  /* Getting an API Key for auth */
-  var response = await getApiKey(_plugin_env_sensoterraUrl, email, password);
-  var apiKey = response["api_key"]; // Get API key from response.
-  /* Get last value from registered probes on Sensoterra */
-  var probes = await getProbes(_plugin_env_sensoterraUrl, apiKey, limit, skip);
-  /* Checks size of JSON to update data for the available probes */
-  var size = Object.keys(probes).length; // Size of the retrieved JSON file
-  for (var i = 0; i < size; i++) {
-    var deviceName = probes[i]["name"];
-    var deviceLabel = probes[i]["id"];
-    var value = probes[i]["status"]["last_reading"];
-    var depthId = probes[i]["depth_id"];
-    var soilId = probes[i]["soil_profile"][0]["soil_id"];
-    var timestamp = new Date(probes[i]["status"]["last_update"]).valueOf(); //in milliseconds
-    lat = probes[i]["latitude"];
-    lng = probes[i]["longitude"];
-    status = probes[i]["status"]["code"];
-    signalStrength = probes[i]["status"]["signal_strength"];
-    /* Build JSON */
-    payload = buildJson(_plugin_env_varLabelSoilMoisture, value, timestamp);
-    /* Create a new devices at Ubidots if doesn't exists*/
-    await ubidotsDeviceCreation(
+  try {
+    return await dataIngestion(
+      _plugin_env_sensoterraUrl,
+      email,
+      password,
+      limit,
+      skip,
       _plugin_env_ubidotsUrl,
       ubidotsToken,
-      deviceName,
-      deviceLabel,
-      probeDepth(depthId),
-      probeSoil(soilId)
+      _plugin_env_varLabelSoilMoisture
     );
-    /* Post to Ubidots */
-    postResponse = await ubidotsPost(
-      _plugin_env_ubidotsUrl,
-      ubidotsToken,
-      deviceLabel,
-      payload
-    );
+  } catch (error) {
+    return error;
   }
-  return postResponse;
 }
