@@ -1,0 +1,18 @@
+<form name="formName">
+    <group name="groupName">
+        <group name="groupName">
+            <label name="token">Ubidots token</label>
+            <input name="token" type="text" />
+        </group>
+    </group>
+    <group name="groupName">
+        <group name="groupName">
+            <label name="device">Device label</label>
+            <input name="label" type="text" />
+        </group>
+        <group name="groupName">
+            <label name="variables">Currency Exchange</label>
+            <input name="currencies" type="text" />
+        </group>
+    </group>
+</form>
