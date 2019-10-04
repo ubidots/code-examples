@@ -11,7 +11,7 @@
             <input name="label" type="text" />
         </group>
         <group name="groupName">
-            <label name="variables">Currency Exchange</label>
+            <label name="variables">Currency exchange</label>
             <input name="currencies" type="text" />
         </group>
     </group>

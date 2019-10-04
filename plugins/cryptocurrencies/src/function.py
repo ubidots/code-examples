@@ -80,13 +80,14 @@ def initial_variables(args):
 def main(args):
     token, device, currencies = initial_variables(args)
     crypto_request = get_bitcoin_data_exchange()
-
+    if crypto_request is None:
+        return {"status": "error: could not make request to CoinDesk API "}
     if crypto_request.status_code >= 400 and crypto_request.status_code < 600:
-        raise "Error code: {} – Unvalid response from Coindesk API".format(
-            crypto_request.status_code)
+        return {"staus": "error code: {} – Unvalid response from Coindesk API".format(
+            crypto_request.status_code)}
 
     data = crypto_request.json()
     payload = build_payload(data, currencies)
     ubi_request = update_device(device, payload, token)
 
-    return {"STATUS": ubi_request.status_code}
+    return {"status": ubi_request.status_code}
