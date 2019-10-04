@@ -1,0 +1,7 @@
+{
+	"version": "0.0.1",
+	"runtime": "python-jessie:3",
+	"environment": {},
+	"plugin_type": "cron",
+	"interval": 1
+}
