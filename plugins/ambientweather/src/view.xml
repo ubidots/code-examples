@@ -1,0 +1,22 @@
+<form name="formName">
+    <group name="groupName">
+        <group name="groupName">
+            <label name="ubiToken">Ubidots Token</label>
+            <input name="ubiToken" type="text" />
+        </group>
+    </group>
+    <group name="groupName">
+        <group name="groupName">
+            <label name="deviceMAC">Device MAC</label>
+            <input name="deviceMAC" type="text" />
+        </group>
+        <group name="groupName">
+            <label name="apikey">API Key Ambient Weather</label>
+            <input name="apikey" type="text" />
+        </group>
+        <group name="groupName">
+            <label name="applicationKey">Application Key Ambient Weather</label>
+            <input name="applicationKey" type="text" />
+        </group>
+    </group>
+</form>

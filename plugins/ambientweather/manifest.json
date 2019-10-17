@@ -1,0 +1,10 @@
+{
+	"version": "1.0",
+	"runtime": "nodejs:8",
+	"environment": {
+		"UbidotsAPI": "https://industrial.api.ubidots.com/api/v1.6",
+		"AmbientWeatherAPI": "https://api.ambientweather.net/v1/devices/"
+	},
+	"plugin_type": "cron",
+	"interval": 5
+}
