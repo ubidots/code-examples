@@ -55,20 +55,16 @@ async function main(args) {
     var payload = {};
 
     for (const key in waResponse) {
-      if (waResponse.hasOwnProperty(key)) {
-        const element = waResponse[key];
-        if (key != 'dateutc' && key != 'date') {
-          payload[key] = {
-            'value': element,
-            'timestamp': actualTimestamp
-          }
+      const element = waResponse[key];
+      if (key != 'dateutc' && key != 'date') {
+        payload[key] = {
+          'value': element,
+          'timestamp': actualTimestamp
         }
       }
     }
 
     var POSTRequest = await ubidotsPostRequest(deviceMAC, payload);
-
-    console.log(POSTRequest)
 
     return {
       parser_status: "OK",
