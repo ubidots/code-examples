@@ -318,7 +318,7 @@ function payloadDecode(data) {
 async function ubidotsRequest(token, label, payload) {
   const options = {
     method: 'POST',
-    url: `https://industrial.api.ubidots.com/api/v1.6/devices/${label}`,
+    url: 'https://industrial.api.ubidots.com/api/v1.6/devices/' + label,
     body: payload,
     json: true,
     headers: {
